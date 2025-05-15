@@ -1,3 +1,3 @@
 #! /bin/bash
 
-apt-get install portaudio19-dev wget -y
+sudo apt-get install portaudio19-dev wget -y
