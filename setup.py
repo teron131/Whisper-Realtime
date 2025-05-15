@@ -1,7 +1,8 @@
 import pathlib
-from setuptools import find_packages, setup
-from whisper_live.__version__ import __version__
 
+from setuptools import find_packages, setup
+
+from whisper_live.__version__ import __version__
 
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
@@ -32,36 +33,29 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
-    packages=find_packages(
-        exclude=(
-            "examples",
-            "Audio-Transcription-Chrome",
-            "Audio-Transcription-Firefox",
-            "requirements",
-            "whisper-finetuning"
-        )
-    ),
+    packages=find_packages(exclude=("examples", "Audio-Transcription-Chrome", "Audio-Transcription-Firefox", "requirements", "whisper-finetuning")),
     install_requires=[
         "PyAudio",
-        "faster-whisper==1.1.0",
+        "faster-whisper",
         "torch",
         "torchaudio",
         "websockets",
-        "onnxruntime==1.17.0",
+        "onnxruntime",
         "scipy",
         "websocket-client",
         "numba",
-        "openai-whisper==20240930",
+        "openai-whisper",
         "kaldialign",
         "soundfile",
-        "tokenizers==0.20.3",
+        "tokenizers",
         "librosa",
-        "numpy==1.26.4",
+        # "numpy==1.26.4",
+        "numpy",
         "openvino",
         "openvino-genai",
         "openvino-tokenizers",
-        "optimum", 
+        "optimum",
         "optimum-intel",
     ],
-    python_requires=">=3.9"
+    python_requires=">=3.9",
 )
