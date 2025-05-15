@@ -36,6 +36,7 @@ setup(
     packages=find_packages(exclude=("examples", "Audio-Transcription-Chrome", "Audio-Transcription-Firefox", "requirements", "whisper-finetuning")),
     install_requires=[
         "PyAudio",
+        "python-dotenv",
         "faster-whisper",
         "torch",
         "torchaudio",
@@ -48,14 +49,8 @@ setup(
         "kaldialign",
         "soundfile",
         "tokenizers",
-        "librosa",
         # "numpy==1.26.4",
         "numpy",
-        "openvino",
-        "openvino-genai",
-        "openvino-tokenizers",
-        "optimum",
-        "optimum-intel",
     ],
     python_requires=">=3.9",
 )

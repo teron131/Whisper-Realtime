@@ -1,3 +1,4 @@
+python-dotenv
 faster-whisper
 websockets
 onnxruntime
@@ -11,11 +12,3 @@ evaluate
 numpy
 openai-whisper
 tokenizers
-
-# openvino
-librosa
-openvino
-openvino-genai
-openvino-tokenizers
-optimum 
-optimum-intel

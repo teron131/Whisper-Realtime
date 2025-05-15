@@ -1,4 +1,11 @@
 audio
+*.wav
+*.mp3
+*.m4a
+*.ogg
+*.flac
+*.aac
+*.wma
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
