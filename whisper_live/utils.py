@@ -3,6 +3,7 @@ import textwrap
 from pathlib import Path
 
 import av
+from opencc import OpenCC
 
 
 def clear_screen():
@@ -79,3 +80,8 @@ def resample(file: str, sr: int = 16000):
 
     output_container.close()
     return resampled_file
+
+
+def s2hk(content: str) -> str:
+    """Convert segments from Simplified Chinese to Traditional Chinese."""
+    return OpenCC("s2hk").convert(content)

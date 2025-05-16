@@ -6,6 +6,7 @@ import time
 import numpy as np
 import torch
 
+import whisper_live.utils as utils
 from whisper_live.transcriber import WhisperModel
 
 
@@ -233,6 +234,11 @@ class ServeClientBase(object):
         Returns:
             segments (list): A list of transcription segments to be sent to the client.
         """
+        # Convert segment text from Simplified Chinese to Traditional Chinese
+        if len(segments):
+            for seg in segments:
+                seg["text"] = utils.s2hk(seg["text"])
+
         try:
             self.websocket.send(
                 json.dumps(
