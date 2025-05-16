@@ -2,16 +2,13 @@ import functools
 import json
 import logging
 import os
-import threading
 import time
 from enum import Enum
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 from websockets.exceptions import ConnectionClosed
 from websockets.sync.server import serve
-
-from whisper_live.backend.base import ServeClientBase
 
 logging.basicConfig(level=logging.INFO)
 

@@ -1,18 +1,20 @@
+import copy
 import json
 import os
+import unittest
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
 import scipy
 import websocket
-import copy
-import unittest
-from unittest.mock import patch, MagicMock
+
 from whisper_live.client import Client, TranscriptionClient, TranscriptionTeeClient
 from whisper_live.utils import resample
-from pathlib import Path
 
 
 class BaseTestCase(unittest.TestCase):
-    @patch('whisper_live.client.websocket.WebSocketApp')
-    @patch('whisper_live.client.pyaudio.PyAudio')
+    @patch("whisper_live.client.websocket.WebSocketApp")
+    @patch("whisper_live.client.pyaudio.PyAudio")
     def setUp(self, mock_pyaudio, mock_websocket):
         self.mock_pyaudio_instance = MagicMock()
         mock_pyaudio.return_value = self.mock_pyaudio_instance
@@ -22,11 +24,11 @@ class BaseTestCase(unittest.TestCase):
         self.mock_ws_app = mock_websocket.return_value
         self.mock_ws_app.send = MagicMock()
 
-        self.client = TranscriptionClient(host='localhost', port=9090, lang="en").client
+        self.client = TranscriptionClient(host="localhost", port=9090, lang="en").client
 
         self.mock_pyaudio = mock_pyaudio
         self.mock_websocket = mock_websocket
-        self.mock_audio_packet = b'\x00\x01\x02\x03'
+        self.mock_audio_packet = b"\x00\x01\x02\x03"
 
     def tearDown(self):
         self.client.close_websocket()
@@ -34,54 +36,44 @@ class BaseTestCase(unittest.TestCase):
         self.mock_websocket.stop()
         del self.client
 
+
 class TestClientWebSocketCommunication(BaseTestCase):
     def test_websocket_communication(self):
-        expected_url = 'ws://localhost:9090'
+        expected_url = "ws://localhost:9090"
         self.mock_websocket.assert_called()
         self.assertEqual(self.mock_websocket.call_args[0][0], expected_url)
 
 
 class TestClientCallbacks(BaseTestCase):
     def test_on_open(self):
-        expected_message = json.dumps({
-            "uid": self.client.uid,
-            "language": self.client.language,
-            "task": self.client.task,
-            "model": self.client.model,
-            "use_vad": True,
-            "max_clients": 4,
-            "max_connection_time": 600,
-            "send_last_n_segments": 10,
-            "no_speech_thresh": 0.45,
-            "clip_audio": False,
-            "same_output_threshold": 10,
-        })
+        expected_message = json.dumps(
+            {
+                "uid": self.client.uid,
+                "language": self.client.language,
+                "task": self.client.task,
+                "model": self.client.model,
+                "use_vad": True,
+                "max_clients": 4,
+                "max_connection_time": 600,
+                "send_last_n_segments": 10,
+                "no_speech_thresh": 0.45,
+                "clip_audio": False,
+                "same_output_threshold": 10,
+            }
+        )
         self.client.on_open(self.mock_ws_app)
         self.mock_ws_app.send.assert_called_with(expected_message)
 
     def test_on_message(self):
-        message = json.dumps(
-            {
-                "uid": self.client.uid,
-                "message": "SERVER_READY",
-                "backend": "faster_whisper"
-            }
-        )
+        message = json.dumps({"uid": self.client.uid, "message": "SERVER_READY", "backend": "faster_whisper"})
         self.client.on_message(self.mock_ws_app, message)
 
-        message = json.dumps({
-            "uid": self.client.uid,
-            "segments": [
-                {"start": 0, "end": 1, "text": "Test transcript", "completed": True},
-                {"start": 1, "end": 2, "text": "Test transcript 2", "completed": True},
-                {"start": 2, "end": 3, "text": "Test transcript 3", "completed": True}
-            ]
-        })
+        message = json.dumps({"uid": self.client.uid, "segments": [{"start": 0, "end": 1, "text": "Test transcript", "completed": True}, {"start": 1, "end": 2, "text": "Test transcript 2", "completed": True}, {"start": 2, "end": 3, "text": "Test transcript 3", "completed": True}]})
         self.client.on_message(self.mock_ws_app, message)
 
         # Assert that the transcript was updated correctly
         self.assertEqual(len(self.client.transcript), 3)
-        self.assertEqual(self.client.transcript[1]['text'], "Test transcript 2")
+        self.assertEqual(self.client.transcript[1]["text"], "Test transcript 2")
 
     def test_on_close(self):
         close_status_code = 1000
@@ -117,13 +109,14 @@ class TestSendingAudioPacket(BaseTestCase):
         self.client.send_packet_to_server(self.mock_audio_packet)
         self.client.client_socket.send.assert_called_with(self.mock_audio_packet, websocket.ABNF.OPCODE_BINARY)
 
+
 class TestTee(BaseTestCase):
-    @patch('whisper_live.client.websocket.WebSocketApp')
-    @patch('whisper_live.client.pyaudio.PyAudio')
+    @patch("whisper_live.client.websocket.WebSocketApp")
+    @patch("whisper_live.client.pyaudio.PyAudio")
     def setUp(self, mock_audio, mock_websocket):
         super().setUp()
-        self.client2 = Client(host='localhost', port=9090, lang="es", translate=False, srt_file_path="transcript.srt")
-        self.client3 = Client(host='localhost', port=9090, lang="es", translate=True, srt_file_path="translation.srt")
+        self.client2 = Client(host="localhost", port=9090, lang="es", translate=False, srt_file_path="transcript.srt")
+        self.client3 = Client(host="localhost", port=9090, lang="es", translate=True, srt_file_path="translation.srt")
         # need a separate mock for each websocket
         self.client3.client_socket = copy.deepcopy(self.client3.client_socket)
         self.tee = TranscriptionTeeClient([self.client2, self.client3])

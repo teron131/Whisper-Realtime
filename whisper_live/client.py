@@ -1,16 +1,16 @@
+import json
 import os
 import shutil
+import threading
+import time
+import uuid
 import wave
 
-import logging
+import av
 import numpy as np
 import pyaudio
-import threading
-import json
 import websocket
-import uuid
-import time
-import av
+
 import whisper_live.utils as utils
 
 
@@ -18,6 +18,7 @@ class Client:
     """
     Handles communication with a server using WebSocket.
     """
+
     INSTANCES = {}
     END_OF_AUDIO = "END_OF_AUDIO"
 
@@ -93,16 +94,14 @@ class Client:
         self.audio_bytes = None
 
         if host is not None and port is not None:
-            socket_protocol = 'wss' if self.use_wss else "ws"
+            socket_protocol = "wss" if self.use_wss else "ws"
             socket_url = f"{socket_protocol}://{host}:{port}"
             self.client_socket = websocket.WebSocketApp(
                 socket_url,
                 on_open=lambda ws: self.on_open(ws),
                 on_message=lambda ws, message: self.on_message(ws, message),
                 on_error=lambda ws, error: self.on_error(ws, error),
-                on_close=lambda ws, close_status_code, close_msg: self.on_close(
-                    ws, close_status_code, close_msg
-                ),
+                on_close=lambda ws, close_status_code, close_msg: self.on_close(ws, close_status_code, close_msg),
             )
         else:
             print("[ERROR]: No host or port specified.")
@@ -138,9 +137,7 @@ class Client:
                 text.append(seg["text"])
                 if i == len(segments) - 1 and not seg.get("completed", False):
                     self.last_segment = seg
-                elif (self.server_backend == "faster_whisper" and seg.get("completed", False) and
-                      (not self.transcript or
-                        float(seg['start']) >= float(self.transcript[-1]['end']))):
+                elif self.server_backend == "faster_whisper" and seg.get("completed", False) and (not self.transcript or float(seg["start"]) >= float(self.transcript[-1]["end"])):
                     self.transcript.append(seg)
         # update last received segment and last valid response time
         if self.last_received_segment is None or self.last_received_segment != segments[-1]["text"]:
@@ -150,11 +147,11 @@ class Client:
         # call the transcription callback if provided
         if self.transcription_callback and callable(self.transcription_callback):
             try:
-                self.transcription_callback(" ".join(text), segments) # string, list
+                self.transcription_callback(" ".join(text), segments)  # string, list
             except Exception as e:
                 print(f"[WARN] transcription_callback raised: {e}")
             return
-        
+
         if self.log_transcription:
             # Truncate to last 3 entries for brevity.
             text = text[-3:]
@@ -198,9 +195,7 @@ class Client:
         if "language" in message.keys():
             self.language = message.get("language")
             lang_prob = message.get("language_prob")
-            print(
-                f"[INFO]: Server detected language {self.language} with probability {lang_prob}"
-            )
+            print(f"[INFO]: Server detected language {self.language} with probability {lang_prob}")
             return
 
         if "segments" in message.keys():
@@ -321,6 +316,7 @@ class TranscriptionTeeClient:
     Attributes:
         clients (list): the underlying Client instances responsible for handling WebSocket connections.
     """
+
     def __init__(self, clients, save_output_recording=False, output_recording_filename="./output_recording.wav", mute_audio_playback=False):
         self.clients = clients
         if not self.clients:
@@ -359,9 +355,7 @@ class TranscriptionTeeClient:
             audio (str, optional): Path to an audio file for transcription. Default is None, which triggers live recording.
 
         """
-        assert sum(
-            source is not None for source in [audio, rtsp_url, hls_url]
-        ) <= 1, 'You must provide only one selected source'
+        assert sum(source is not None for source in [audio, rtsp_url, hls_url]) <= 1, "You must provide only one selected source"
 
         print("[INFO]: Waiting for server ready ...")
         for client in self.clients:
@@ -400,7 +394,7 @@ class TranscriptionTeeClient:
             unconditional (bool, optional): If true, send regardless of whether clients are recording.  Default is False.
         """
         for client in self.clients:
-            if (unconditional or client.recording):
+            if unconditional or client.recording:
                 client.send_packet_to_server(packet)
 
     def play_file(self, filename):
@@ -441,12 +435,12 @@ class TranscriptionTeeClient:
                         time.sleep(chunk_duration)
                     else:
                         self.stream.write(data)
-    
+
                 wavfile.close()
 
                 for client in self.clients:
                     client.wait_before_disconnect()
-                self.multicast_packet(Client.END_OF_AUDIO.encode('utf-8'), True)
+                self.multicast_packet(Client.END_OF_AUDIO.encode("utf-8"), True)
                 self.write_all_clients_srt()
                 self.stream.close()
                 self.close_all_clients()
@@ -476,7 +470,7 @@ class TranscriptionTeeClient:
         finally:
             for client in self.clients:
                 client.wait_before_disconnect()
-            self.multicast_packet(Client.END_OF_AUDIO.encode('utf-8'), True)
+            self.multicast_packet(Client.END_OF_AUDIO.encode("utf-8"), True)
             self.close_all_clients()
             self.write_all_clients_srt()
         print("[INFO]: RTSP stream processing finished.")
@@ -498,7 +492,7 @@ class TranscriptionTeeClient:
         finally:
             for client in self.clients:
                 client.wait_before_disconnect()
-            self.multicast_packet(Client.END_OF_AUDIO.encode('utf-8'), True)
+            self.multicast_packet(Client.END_OF_AUDIO.encode("utf-8"), True)
             self.close_all_clients()
             self.write_all_clients_srt()
         print("[INFO]: HLS stream processing finished.")
@@ -535,7 +529,7 @@ class TranscriptionTeeClient:
         finally:
             # Wait for server to send any leftover transcription.
             time.sleep(5)
-            self.multicast_packet(Client.END_OF_AUDIO.encode('utf-8'), True)
+            self.multicast_packet(Client.END_OF_AUDIO.encode("utf-8"), True)
             if output_container:
                 output_container.close()
             container.close()
@@ -550,7 +544,10 @@ class TranscriptionTeeClient:
         """
         t = threading.Thread(
             target=self.write_audio_frames_to_file,
-            args=(self.frames[:], f"chunks/{n_audio_file}.wav",),
+            args=(
+                self.frames[:],
+                f"chunks/{n_audio_file}.wav",
+            ),
         )
         t.start()
 
@@ -564,9 +561,7 @@ class TranscriptionTeeClient:
                             This index is incremented before use if the last chunk is saved.
         """
         if self.save_output_recording and len(self.frames):
-            self.write_audio_frames_to_file(
-                self.frames[:], f"chunks/{n_audio_file}.wav"
-            )
+            self.write_audio_frames_to_file(self.frames[:], f"chunks/{n_audio_file}.wav")
             n_audio_file += 1
         self.stream.stop_stream()
         self.stream.close()
@@ -649,11 +644,7 @@ class TranscriptionTeeClient:
             out_file (str): The name of the output WAV file to save the final recording.
 
         """
-        input_files = [
-            f"chunks/{i}.wav"
-            for i in range(n_audio_file)
-            if os.path.exists(f"chunks/{i}.wav")
-        ]
+        input_files = [f"chunks/{i}.wav" for i in range(n_audio_file) if os.path.exists(f"chunks/{i}.wav")]
         with wave.open(self.output_recording_filename, "wb") as wavfile:
             wavfile: wave.Wave_write
             wavfile.setnchannels(self.channels)
@@ -728,6 +719,7 @@ class TranscriptionClient(TranscriptionTeeClient):
         transcription_client()
         ```
     """
+
     def __init__(
         self,
         host,
@@ -773,10 +765,4 @@ class TranscriptionClient(TranscriptionTeeClient):
             raise ValueError(f"Please provide a valid `output_recording_filename`: {output_recording_filename}")
         if not output_transcription_path.endswith(".srt"):
             raise ValueError(f"Please provide a valid `output_transcription_path`: {output_transcription_path}. The file extension should be `.srt`.")
-        TranscriptionTeeClient.__init__(
-            self,
-            [self.client],
-            save_output_recording=save_output_recording,
-            output_recording_filename=output_recording_filename,
-            mute_audio_playback=mute_audio_playback
-        )
+        TranscriptionTeeClient.__init__(self, [self.client], save_output_recording=save_output_recording, output_recording_filename=output_recording_filename, mute_audio_playback=mute_audio_playback)

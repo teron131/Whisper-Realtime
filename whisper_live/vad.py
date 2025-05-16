@@ -1,12 +1,13 @@
 import os
 import subprocess
-import torch
-import numpy as np
-import onnxruntime
 import warnings
 
+import numpy as np
+import onnxruntime
+import torch
 
-class VoiceActivityDetection():
+
+class VoiceActivityDetection:
 
     def __init__(self, force_onnx_cpu=True):
         path = self.download()
@@ -17,14 +18,14 @@ class VoiceActivityDetection():
         opts.inter_op_num_threads = 1
         opts.intra_op_num_threads = 1
 
-        if force_onnx_cpu and 'CPUExecutionProvider' in onnxruntime.get_available_providers():
-            self.session = onnxruntime.InferenceSession(path, providers=['CPUExecutionProvider'], sess_options=opts)
+        if force_onnx_cpu and "CPUExecutionProvider" in onnxruntime.get_available_providers():
+            self.session = onnxruntime.InferenceSession(path, providers=["CPUExecutionProvider"], sess_options=opts)
         else:
-            self.session = onnxruntime.InferenceSession(path, providers=['CUDAExecutionProvider'], sess_options=opts)
+            self.session = onnxruntime.InferenceSession(path, providers=["CUDAExecutionProvider"], sess_options=opts)
 
         self.reset_states()
-        if '16k' in path:
-            warnings.warn('This model support only 16000 sampling rate!')
+        if "16k" in path:
+            warnings.warn("This model support only 16000 sampling rate!")
             self.sample_rates = [16000]
         else:
             self.sample_rates = [8000, 16000]
@@ -37,7 +38,7 @@ class VoiceActivityDetection():
 
         if sr != 16000 and (sr % 16000 == 0):
             step = sr // 16000
-            x = x[:,::step]
+            x = x[:, ::step]
             sr = 16000
 
         if sr not in self.sample_rates:
@@ -76,7 +77,7 @@ class VoiceActivityDetection():
 
         x = torch.cat([self._context, x], dim=1)
         if sr in [8000, 16000]:
-            ort_inputs = {'input': x.numpy(), 'state': self._state.numpy(), 'sr': np.array(sr, dtype='int64')}
+            ort_inputs = {"input": x.numpy(), "state": self._state.numpy(), "sr": np.array(sr, dtype="int64")}
             ort_outs = self.session.run(None, ort_inputs)
             out, state = ort_outs
             self._state = torch.from_numpy(state)
@@ -98,10 +99,10 @@ class VoiceActivityDetection():
 
         if x.shape[1] % num_samples:
             pad_num = num_samples - (x.shape[1] % num_samples)
-            x = torch.nn.functional.pad(x, (0, pad_num), 'constant', value=0.0)
+            x = torch.nn.functional.pad(x, (0, pad_num), "constant", value=0.0)
 
         for i in range(0, x.shape[1], num_samples):
-            wavs_batch = x[:, i:i+num_samples]
+            wavs_batch = x[:, i : i + num_samples]
             out_chunk = self.__call__(wavs_batch, sr)
             outs.append(out_chunk)
 

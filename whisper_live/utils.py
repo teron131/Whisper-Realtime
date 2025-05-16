@@ -1,9 +1,8 @@
 import os
 import textwrap
-import scipy
-import numpy as np
-import av
 from pathlib import Path
+
+import av
 
 
 def clear_screen():
@@ -28,12 +27,12 @@ def format_time(s):
 
 
 def create_srt_file(segments, resampled_file):
-    with open(resampled_file, 'w', encoding='utf-8') as srt_file:
+    with open(resampled_file, "w", encoding="utf-8") as srt_file:
         segment_number = 1
         for segment in segments:
-            start_time = format_time(float(segment['start']))
-            end_time = format_time(float(segment['end']))
-            text = segment['text']
+            start_time = format_time(float(segment["start"]))
+            end_time = format_time(float(segment["end"]))
+            text = segment["text"]
 
             srt_file.write(f"{segment_number}\n")
             srt_file.write(f"{start_time} --> {end_time}\n")
@@ -54,18 +53,18 @@ def resample(file: str, sr: int = 16000):
         resampled_file (str): The resampled audio file
     """
     container = av.open(file)
-    stream = next(s for s in container.streams if s.type == 'audio')
+    stream = next(s for s in container.streams if s.type == "audio")
 
     resampler = av.AudioResampler(
-        format='s16',
-        layout='mono',
+        format="s16",
+        layout="mono",
         rate=sr,
     )
 
     resampled_file = Path(file).stem + "_resampled.wav"
-    output_container = av.open(resampled_file, mode='w')
-    output_stream = output_container.add_stream('pcm_s16le', rate=sr)
-    output_stream.layout = 'mono'
+    output_container = av.open(resampled_file, mode="w")
+    output_stream = output_container.add_stream("pcm_s16le", rate=sr)
+    output_stream.layout = "mono"
 
     for frame in container.decode(audio=0):
         frame.pts = None

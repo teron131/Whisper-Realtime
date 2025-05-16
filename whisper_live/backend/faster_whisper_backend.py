@@ -1,11 +1,11 @@
 import json
 import logging
 import threading
-import time
+
 import torch
 
-from whisper_live.transcriber.transcriber_faster_whisper import WhisperModel
 from whisper_live.backend.base import ServeClientBase
+from whisper_live.transcriber.transcriber_faster_whisper import WhisperModel
 
 
 class ServeClientFasterWhisper(ServeClientBase):
@@ -58,12 +58,7 @@ class ServeClientFasterWhisper(ServeClientBase):
             clip_audio,
             same_output_threshold,
         )
-        self.model_sizes = [
-            "tiny", "tiny.en", "base", "base.en", "small", "small.en",
-            "medium", "medium.en", "large-v2", "large-v3", "distil-small.en",
-            "distil-medium.en", "distil-large-v2", "distil-large-v3",
-            "large-v3-turbo", "turbo"
-        ]
+        self.model_sizes = ["tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v2", "large-v3", "distil-small.en", "distil-medium.en", "distil-large-v2", "distil-large-v3", "large-v3-turbo", "turbo"]
 
         self.model_size_or_path = model
         self.language = "en" if self.model_size_or_path.endswith("en") else language
@@ -81,7 +76,7 @@ class ServeClientFasterWhisper(ServeClientBase):
         if self.model_size_or_path is None:
             return
         logging.info(f"Using Device={device} with precision {self.compute_type}")
-    
+
         try:
             if single_model:
                 if ServeClientFasterWhisper.SINGLE_MODEL is None:
@@ -93,11 +88,7 @@ class ServeClientFasterWhisper(ServeClientBase):
                 self.create_model(device)
         except Exception as e:
             logging.error(f"Failed to load model: {e}")
-            self.websocket.send(json.dumps({
-                "uid": self.client_uid,
-                "status": "ERROR",
-                "message": f"Failed to load model: {str(self.model_size_or_path)}"
-            }))
+            self.websocket.send(json.dumps({"uid": self.client_uid, "status": "ERROR", "message": f"Failed to load model: {str(self.model_size_or_path)}"}))
             self.websocket.close()
             return
 
@@ -106,15 +97,7 @@ class ServeClientFasterWhisper(ServeClientBase):
         # threading
         self.trans_thread = threading.Thread(target=self.speech_to_text)
         self.trans_thread.start()
-        self.websocket.send(
-            json.dumps(
-                {
-                    "uid": self.client_uid,
-                    "message": self.SERVER_READY,
-                    "backend": "faster_whisper"
-                }
-            )
-        )
+        self.websocket.send(json.dumps({"uid": self.client_uid, "message": self.SERVER_READY, "backend": "faster_whisper"}))
 
     def create_model(self, device):
         """
@@ -138,15 +121,7 @@ class ServeClientFasterWhisper(ServeClientBase):
             str: The model size if valid, None otherwise.
         """
         if model_size not in self.model_sizes:
-            self.websocket.send(
-                json.dumps(
-                    {
-                        "uid": self.client_uid,
-                        "status": "ERROR",
-                        "message": f"Invalid model size {model_size}. Available choices: {self.model_sizes}"
-                    }
-                )
-            )
+            self.websocket.send(json.dumps({"uid": self.client_uid, "status": "ERROR", "message": f"Invalid model size {model_size}. Available choices: {self.model_sizes}"}))
             return None
         return model_size
 
@@ -163,8 +138,7 @@ class ServeClientFasterWhisper(ServeClientBase):
         if info.language_probability > 0.5:
             self.language = info.language
             logging.info(f"Detected language {self.language} with probability {info.language_probability}")
-            self.websocket.send(json.dumps(
-                {"uid": self.client_uid, "language": self.language, "language_prob": info.language_probability}))
+            self.websocket.send(json.dumps({"uid": self.client_uid, "language": self.language, "language_prob": info.language_probability}))
 
     def transcribe_audio(self, input_sample):
         """
@@ -184,13 +158,7 @@ class ServeClientFasterWhisper(ServeClientBase):
         """
         if ServeClientFasterWhisper.SINGLE_MODEL:
             ServeClientFasterWhisper.SINGLE_MODEL_LOCK.acquire()
-        result, info = self.transcriber.transcribe(
-            input_sample,
-            initial_prompt=self.initial_prompt,
-            language=self.language,
-            task=self.task,
-            vad_filter=self.use_vad,
-            vad_parameters=self.vad_parameters if self.use_vad else None)
+        result, info = self.transcriber.transcribe(input_sample, initial_prompt=self.initial_prompt, language=self.language, task=self.task, vad_filter=self.use_vad, vad_parameters=self.vad_parameters if self.use_vad else None)
         if ServeClientFasterWhisper.SINGLE_MODEL:
             ServeClientFasterWhisper.SINGLE_MODEL_LOCK.release()
 
