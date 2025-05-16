@@ -10,6 +10,8 @@ import numpy as np
 from websockets.exceptions import ConnectionClosed
 from websockets.sync.server import serve
 
+from whisper_live.backend import ServeClientFasterWhisper
+
 logging.basicConfig(level=logging.INFO)
 
 
@@ -146,7 +148,6 @@ class TranscriptionServer:
         options,
         faster_whisper_custom_model_path,
     ):
-        from whisper_live.backend.faster_whisper_backend import ServeClientFasterWhisper
 
         # Use custom model if provided
         if faster_whisper_custom_model_path and os.path.exists(faster_whisper_custom_model_path):

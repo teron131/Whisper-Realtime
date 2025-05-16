@@ -9,4 +9,8 @@ if __name__ == "__main__":
     from whisper_live.server import TranscriptionServer
 
     server = TranscriptionServer()
-    server.run("0.0.0.0", port=args.port, faster_whisper_custom_model_path=args.faster_whisper_custom_model_path)
+    server.run(
+        "0.0.0.0",
+        port=args.port,
+        faster_whisper_custom_model_path=args.faster_whisper_custom_model_path,
+    )
